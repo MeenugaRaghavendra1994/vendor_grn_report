@@ -283,6 +283,7 @@ if uploaded_file:
 
 
 
+
 # ================= VISIBILITY =================
 st.subheader("📈 BigQuery Live Data")
 
