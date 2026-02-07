@@ -22,6 +22,17 @@ client = bigquery.Client(
 )
 
 # ================= STREAMLIT UI =================
+st.subheader("⬇️ Download Excel Upload Template")
+
+template_file = generate_excel_template()
+
+st.download_button(
+    label="📥 Download Vendor GRN Excel Template",
+    data=template_file,
+    file_name="Vendor_GRN_Upload_Template.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
 st.set_page_config(page_title="Vendor GRN Upload", layout="wide")
 st.title("📦 Vendor GRN Data Upload & Visibility")
 
@@ -133,16 +144,6 @@ def merge_to_main():
     client.query(merge_sql).result()
 
 # ================= MAIN FLOW =================
-st.subheader("⬇️ Download Excel Upload Template")
-
-template_file = generate_excel_template()
-
-st.download_button(
-    label="📥 Download Vendor GRN Excel Template",
-    data=template_file,
-    file_name="Vendor_GRN_Upload_Template.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
