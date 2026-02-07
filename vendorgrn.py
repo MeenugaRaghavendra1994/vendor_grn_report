@@ -105,15 +105,53 @@ def preprocess(df):
     grouped["last_updated"] = datetime.utcnow()
     return grouped
 
+def enforce_dtypes(df):
+    # Numeric columns
+    for col in QTY_COLUMNS:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("int64")
+
+    # String columns (everything else)
+    for col in df.columns:
+        if col not in QTY_COLUMNS:
+            df[col] = df[col].astype(str).fillna("")
+
+    return df
 
 def load_temp_table(df):
     table_id = f"{PROJECT_ID}.{DATASET}.{TEMP_TABLE}"
-    job = client.load_table_from_dataframe(
-        df,
-        table_id,
-        job_config=bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
+
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=[
+            bigquery.SchemaField("Vendor Name", "STRING"),
+            bigquery.SchemaField("PO Number", "STRING"),
+            bigquery.SchemaField("Reference No", "STRING"),
+            bigquery.SchemaField("SKU", "STRING"),
+            bigquery.SchemaField("Name", "STRING"),
+            bigquery.SchemaField("Invoice Qty", "INTEGER"),
+            bigquery.SchemaField("Received Qty", "INTEGER"),
+            bigquery.SchemaField("Short Excess Qty", "INTEGER"),
+            bigquery.SchemaField("Damage Qty", "INTEGER"),
+            bigquery.SchemaField("Actual GRN Qty", "INTEGER"),
+            bigquery.SchemaField("Warehouse", "STRING"),
+            bigquery.SchemaField("Status", "STRING"),
+            bigquery.SchemaField("GRN No", "STRING"),
+            bigquery.SchemaField("Ekart GRN Qty", "INTEGER"),
+            bigquery.SchemaField("Makali GRN Qty", "INTEGER"),
+            bigquery.SchemaField("K12 to SSPL PO", "STRING"),
+            bigquery.SchemaField("K12 to SSPL GRN", "STRING"),
+            bigquery.SchemaField("STO Qty", "INTEGER"),
+            bigquery.SchemaField("PO", "STRING"),
+            bigquery.SchemaField("Out Bound", "STRING"),
+            bigquery.SchemaField("Bill", "STRING"),
+            bigquery.SchemaField("GRN", "STRING"),
+            bigquery.SchemaField("last_updated", "TIMESTAMP"),
+        ],
     )
+
+    job = client.load_table_from_dataframe(df, table_id, job_config=job_config)
     job.result()
+
 
 
 def merge_to_main():
@@ -166,14 +204,15 @@ if uploaded_file:
     st.dataframe(df)
 
     df_processed = preprocess(df)
+df_processed = enforce_dtypes(df_processed)
 
     st.subheader("📊 Grouped (Reference No + SKU)")
     st.dataframe(df_processed)
 
     if st.button("✅ Save to BigQuery"):
-        load_temp_table(df_processed)
-        merge_to_main()
-        st.success("✅ Data successfully merged into BigQuery!")
+    load_temp_table(df_processed)
+    merge_to_main()
+    st.success("✅ Data successfully merged into BigQuery!")
 
 # ================= VISIBILITY =================
 st.subheader("📈 BigQuery Live Data")
