@@ -231,19 +231,14 @@ if uploaded_file:
     st.dataframe(df)
 
     df_processed = preprocess(df)
-df_processed = enforce_dtypes(df_processed)
-
-# Rename columns for BigQuery compatibility
-df_bq = df_processed.rename(columns=BQ_COLUMN_MAP)
-
-load_temp_table(df_bq)
-
+    df_processed = enforce_dtypes(df_processed)
 
     st.subheader("📊 Grouped (Reference No + SKU)")
     st.dataframe(df_processed)
 
     if st.button("✅ Save to BigQuery"):
-        load_temp_table(df_processed)
+        df_bq = df_processed.rename(columns=BQ_COLUMN_MAP)
+        load_temp_table(df_bq)
         merge_to_main()
         st.success("✅ Data successfully merged into BigQuery!")
 
