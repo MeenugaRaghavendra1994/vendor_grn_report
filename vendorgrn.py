@@ -273,13 +273,13 @@ if uploaded_file:
     st.dataframe(df_processed)
 
     if st.button("✅ Save to BigQuery"):
-        df_bq = df_processed.rename(columns=BQ_COLUMN_MAP)
-df_bq = prepare_for_bigquery(df_bq)
+    df_bq = df_processed.rename(columns=BQ_COLUMN_MAP)
+    df_bq = prepare_for_bigquery(df_bq)
 
-load_temp_table(df_bq)
+    load_temp_table(df_bq)
+    merge_to_main()
 
-        merge_to_main()
-        st.success("✅ Data successfully merged into BigQuery!")
+    st.success("✅ Data successfully merged into BigQuery!")
 
 
 # ================= VISIBILITY =================
