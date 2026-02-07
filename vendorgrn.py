@@ -204,15 +204,16 @@ if uploaded_file:
     st.dataframe(df)
 
     df_processed = preprocess(df)
-df_processed = enforce_dtypes(df_processed)
+    df_processed = enforce_dtypes(df_processed)
 
     st.subheader("📊 Grouped (Reference No + SKU)")
     st.dataframe(df_processed)
 
     if st.button("✅ Save to BigQuery"):
-    load_temp_table(df_processed)
-    merge_to_main()
-    st.success("✅ Data successfully merged into BigQuery!")
+        load_temp_table(df_processed)
+        merge_to_main()
+        st.success("✅ Data successfully merged into BigQuery!")
+
 
 # ================= VISIBILITY =================
 st.subheader("📈 BigQuery Live Data")
