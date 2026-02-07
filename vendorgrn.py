@@ -30,7 +30,7 @@ uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 REQUIRED_COLUMNS = [
     "Vendor Name", "PO Number", "Reference No", "SKU", "Name",
     "Invoice Qty", "Received Qty", "Short Excess Qty", "Damage Qty",
-    "Actual GRN Qty", "WH", "Status", "GRN No",
+    "Actual GRN Qty", "Warehouse", "Status", "GRN No",
     "Ekart GRN Qty", "Makali GRN Qty",
     "K12 to SSPL PO", "K12 to SSPL GRN",
     "STO Qty", "PO", "Out Bound", "Bill", "GRN"
