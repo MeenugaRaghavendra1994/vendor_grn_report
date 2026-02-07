@@ -4,6 +4,7 @@ from google.cloud import bigquery
 from datetime import datetime
 from google.oauth2 import service_account
 import streamlit as st
+import io
 
 # ================= CONFIG =================
 PROJECT_ID = "grnreport181922"
@@ -27,6 +28,31 @@ st.title("📦 Vendor GRN Data Upload & Visibility")
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
 # ================= COLUMN MAPPING =================
+TEMPLATE_COLUMNS = [
+    "Vendor Name",
+    "PO Number",
+    "Reference No",
+    "SKU",
+    "Name",
+    "Invoice Qty",
+    "Received Qty",
+    "Short Excess Qty",
+    "Damage Qty",
+    "Actual GRN Qty",
+    "WH",
+    "Status",
+    "GRN No",
+    "Ekart GRN Qty",
+    "Makali GRN Qty",
+    "K12 to SSPL PO",
+    "K12 to SSPL GRN",
+    "STO Qty",
+    "PO",
+    "Out Bound",
+    "Bill",
+    "GRN"
+]
+
 REQUIRED_COLUMNS = [
     "Vendor Name", "PO Number", "Reference No", "SKU", "Name",
     "Invoice Qty", "Received Qty", "Short Excess Qty", "Damage Qty",
@@ -107,6 +133,17 @@ def merge_to_main():
     client.query(merge_sql).result()
 
 # ================= MAIN FLOW =================
+st.subheader("⬇️ Download Excel Upload Template")
+
+template_file = generate_excel_template()
+
+st.download_button(
+    label="📥 Download Vendor GRN Excel Template",
+    data=template_file,
+    file_name="Vendor_GRN_Upload_Template.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
     validate_columns(df)
@@ -141,3 +178,14 @@ ORDER BY last_updated DESC
 
 result_df = client.query(query).to_dataframe()
 st.dataframe(result_df)
+import io
+
+def generate_excel_template():
+    df = pd.DataFrame(columns=TEMPLATE_COLUMNS)
+    buffer = io.BytesIO()
+
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Vendor_GRN_Template")
+
+    buffer.seek(0)
+    return buffer
