@@ -5,3 +5,5 @@ google-auth
 db-dtypes
 pyarrow
 openpyxl
+sqlalchemy
+psycopg2-binary
