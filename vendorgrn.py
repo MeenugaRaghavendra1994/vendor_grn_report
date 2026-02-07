@@ -185,18 +185,18 @@ def merge_to_main():
     merge_sql = f"""
     MERGE `{PROJECT_ID}.{DATASET}.{MAIN_TABLE}` T
     USING `{PROJECT_ID}.{DATASET}.{TEMP_TABLE}` S
-    ON T.Reference_No = S.Reference_No
-       AND T.SKU = S.SKU
+    ON T.reference_no = S.reference_no
+       AND T.sku = S.sku
 
     WHEN MATCHED THEN UPDATE SET
-      T.Invoice_Qty = T.Invoice_Qty + S.Invoice_Qty,
-      T.Received_Qty = T.Received_Qty + S.Received_Qty,
-      T.Short_Excess_Qty = T.Short_Excess_Qty + S.Short_Excess_Qty,
-      T.Damage_Qty = T.Damage_Qty + S.Damage_Qty,
-      T.Actual_GRN_Qty = T.Actual_GRN_Qty + S.Actual_GRN_Qty,
-      T.Ekart_GRN_Qty = T.Ekart_GRN_Qty + S.Ekart_GRN_Qty,
-      T.Makali_GRN_Qty = T.Makali_GRN_Qty + S.Makali_GRN_Qty,
-      T.STO_Qty = T.STO_Qty + S.STO_Qty,
+      T.invoice_qty = T.invoice_qty + S.invoice_qty,
+      T.received_qty = T.received_qty + S.received_qty,
+      T.short_excess_qty = T.short_excess_qty + S.short_excess_qty,
+      T.damage_qty = T.damage_qty + S.damage_qty,
+      T.actual_grn_qty = T.actual_grn_qty + S.actual_grn_qty,
+      T.ekart_grn_qty = T.ekart_grn_qty + S.ekart_grn_qty,
+      T.makali_grn_qty = T.makali_grn_qty + S.makali_grn_qty,
+      T.sto_qty = T.sto_qty + S.sto_qty,
       T.last_updated = CURRENT_TIMESTAMP()
 
     WHEN NOT MATCHED THEN
