@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from google.cloud import bigquery
 from datetime import datetime
+from google.oauth2 import service_account
+import streamlit as st
 
 # ================= CONFIG =================
 PROJECT_ID = "grnreport181922"
@@ -9,7 +11,14 @@ DATASET = "vendor_grn"
 MAIN_TABLE = "vendor_grn_data"
 TEMP_TABLE = "temp_vendor_grn"
 
-client = bigquery.Client(project=PROJECT_ID)
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"]
+)
+
+client = bigquery.Client(
+    credentials=credentials,
+    project=st.secrets["gcp_service_account"]["project_id"],
+)
 
 # ================= STREAMLIT UI =================
 st.set_page_config(page_title="Vendor GRN Upload", layout="wide")
