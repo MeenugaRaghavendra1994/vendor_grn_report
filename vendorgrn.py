@@ -22,6 +22,32 @@ client = bigquery.Client(
 )
 
 # ================= TEMPLATE COLUMNS =================
+BQ_COLUMN_MAP = {
+    "Vendor Name": "vendor_name",
+    "PO Number": "po_number",
+    "Reference No": "reference_no",
+    "SKU": "sku",
+    "Name": "name",
+    "Invoice Qty": "invoice_qty",
+    "Received Qty": "received_qty",
+    "Short Excess Qty": "short_excess_qty",
+    "Damage Qty": "damage_qty",
+    "Actual GRN Qty": "actual_grn_qty",
+    "Warehouse": "warehouse",
+    "Status": "status",
+    "GRN No": "grn_no",
+    "Ekart GRN Qty": "ekart_grn_qty",
+    "Makali GRN Qty": "makali_grn_qty",
+    "K12 to SSPL PO": "k12_to_sspl_po",
+    "K12 to SSPL GRN": "k12_to_sspl_grn",
+    "STO Qty": "sto_qty",
+    "PO": "po",
+    "Out Bound": "out_bound",
+    "Bill": "bill",
+    "GRN": "grn",
+    "last_updated": "last_updated",
+}
+
 TEMPLATE_COLUMNS = [
     "Vendor Name",
     "PO Number",
@@ -123,34 +149,35 @@ def load_temp_table(df):
     job_config = bigquery.LoadJobConfig(
         write_disposition="WRITE_TRUNCATE",
         schema=[
-            bigquery.SchemaField("Vendor Name", "STRING"),
-            bigquery.SchemaField("PO Number", "STRING"),
-            bigquery.SchemaField("Reference No", "STRING"),
-            bigquery.SchemaField("SKU", "STRING"),
-            bigquery.SchemaField("Name", "STRING"),
-            bigquery.SchemaField("Invoice Qty", "INTEGER"),
-            bigquery.SchemaField("Received Qty", "INTEGER"),
-            bigquery.SchemaField("Short Excess Qty", "INTEGER"),
-            bigquery.SchemaField("Damage Qty", "INTEGER"),
-            bigquery.SchemaField("Actual GRN Qty", "INTEGER"),
-            bigquery.SchemaField("Warehouse", "STRING"),
-            bigquery.SchemaField("Status", "STRING"),
-            bigquery.SchemaField("GRN No", "STRING"),
-            bigquery.SchemaField("Ekart GRN Qty", "INTEGER"),
-            bigquery.SchemaField("Makali GRN Qty", "INTEGER"),
-            bigquery.SchemaField("K12 to SSPL PO", "STRING"),
-            bigquery.SchemaField("K12 to SSPL GRN", "STRING"),
-            bigquery.SchemaField("STO Qty", "INTEGER"),
-            bigquery.SchemaField("PO", "STRING"),
-            bigquery.SchemaField("Out Bound", "STRING"),
-            bigquery.SchemaField("Bill", "STRING"),
-            bigquery.SchemaField("GRN", "STRING"),
+            bigquery.SchemaField("vendor_name", "STRING"),
+            bigquery.SchemaField("po_number", "STRING"),
+            bigquery.SchemaField("reference_no", "STRING"),
+            bigquery.SchemaField("sku", "STRING"),
+            bigquery.SchemaField("name", "STRING"),
+            bigquery.SchemaField("invoice_qty", "INTEGER"),
+            bigquery.SchemaField("received_qty", "INTEGER"),
+            bigquery.SchemaField("short_excess_qty", "INTEGER"),
+            bigquery.SchemaField("damage_qty", "INTEGER"),
+            bigquery.SchemaField("actual_grn_qty", "INTEGER"),
+            bigquery.SchemaField("warehouse", "STRING"),
+            bigquery.SchemaField("status", "STRING"),
+            bigquery.SchemaField("grn_no", "STRING"),
+            bigquery.SchemaField("ekart_grn_qty", "INTEGER"),
+            bigquery.SchemaField("makali_grn_qty", "INTEGER"),
+            bigquery.SchemaField("k12_to_sspl_po", "STRING"),
+            bigquery.SchemaField("k12_to_sspl_grn", "STRING"),
+            bigquery.SchemaField("sto_qty", "INTEGER"),
+            bigquery.SchemaField("po", "STRING"),
+            bigquery.SchemaField("out_bound", "STRING"),
+            bigquery.SchemaField("bill", "STRING"),
+            bigquery.SchemaField("grn", "STRING"),
             bigquery.SchemaField("last_updated", "TIMESTAMP"),
         ],
     )
 
     job = client.load_table_from_dataframe(df, table_id, job_config=job_config)
     job.result()
+
 
 
 
@@ -204,7 +231,13 @@ if uploaded_file:
     st.dataframe(df)
 
     df_processed = preprocess(df)
-    df_processed = enforce_dtypes(df_processed)
+df_processed = enforce_dtypes(df_processed)
+
+# Rename columns for BigQuery compatibility
+df_bq = df_processed.rename(columns=BQ_COLUMN_MAP)
+
+load_temp_table(df_bq)
+
 
     st.subheader("📊 Grouped (Reference No + SKU)")
     st.dataframe(df_processed)
