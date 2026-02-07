@@ -282,6 +282,7 @@ if uploaded_file:
     st.success("✅ Data successfully merged into BigQuery!")
 
 
+
 # ================= VISIBILITY =================
 st.subheader("📈 BigQuery Live Data")
 
