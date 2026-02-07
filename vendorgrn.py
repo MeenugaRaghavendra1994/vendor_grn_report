@@ -142,6 +142,42 @@ def enforce_dtypes(df):
             df[col] = df[col].astype(str).fillna("")
 
     return df
+def prepare_for_bigquery(df):
+    # Ensure all columns exist
+    expected_columns = [
+        "vendor_name", "po_number", "reference_no", "sku", "name",
+        "invoice_qty", "received_qty", "short_excess_qty", "damage_qty",
+        "actual_grn_qty", "warehouse", "status", "grn_no",
+        "ekart_grn_qty", "makali_grn_qty",
+        "k12_to_sspl_po", "k12_to_sspl_grn",
+        "sto_qty", "po", "out_bound", "bill", "grn", "last_updated"
+    ]
+
+    for col in expected_columns:
+        if col not in df.columns:
+            df[col] = None
+
+    # Numeric columns → INT64
+    int_cols = [
+        "invoice_qty", "received_qty", "short_excess_qty", "damage_qty",
+        "actual_grn_qty", "ekart_grn_qty", "makali_grn_qty", "sto_qty"
+    ]
+
+    for col in int_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("int64")
+
+    # String columns → STRING
+    str_cols = [c for c in expected_columns if c not in int_cols + ["last_updated"]]
+    for col in str_cols:
+        df[col] = df[col].astype(str).fillna("")
+
+    # Timestamp
+    df["last_updated"] = pd.to_datetime(df["last_updated"])
+
+    # Reorder columns exactly like schema
+    df = df[expected_columns]
+
+    return df
 
 def load_temp_table(df):
     table_id = f"{PROJECT_ID}.{DATASET}.{TEMP_TABLE}"
@@ -238,7 +274,10 @@ if uploaded_file:
 
     if st.button("✅ Save to BigQuery"):
         df_bq = df_processed.rename(columns=BQ_COLUMN_MAP)
-        load_temp_table(df_bq)
+df_bq = prepare_for_bigquery(df_bq)
+
+load_temp_table(df_bq)
+
         merge_to_main()
         st.success("✅ Data successfully merged into BigQuery!")
 
