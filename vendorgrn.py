@@ -2,22 +2,14 @@ import streamlit as st
 import pandas as pd
 import io
 from datetime import datetime
-from google.cloud import bigquery
-from google.oauth2 import service_account
+from sqlalchemy import create_engine, text
 
-# ================= CONFIG =================
-PROJECT_ID = "grnreport181922"
-DATASET = "vendor_grn"
-RAW_TABLE = "vendor_grn_raw"
+# ================= POSTGRES CONNECTION =================
+db = st.secrets["postgres"]
 
-# ================= AUTH =================
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"]
-)
-
-client = bigquery.Client(
-    credentials=credentials,
-    project=st.secrets["gcp_service_account"]["project_id"],
+engine = create_engine(
+    f"postgresql+psycopg2://{db['user']}:{db['password']}"
+    f"@{db['host']}:{db['port']}/{db['database']}"
 )
 
 # ================= COLUMNS =================
@@ -30,7 +22,7 @@ TEMPLATE_COLUMNS = [
     "STO Qty", "PO", "Out Bound", "Bill", "GRN"
 ]
 
-BQ_COLUMN_MAP = {
+DB_COLUMN_MAP = {
     "Vendor Name": "vendor_name",
     "PO Number": "po_number",
     "Reference No": "reference_no",
@@ -73,10 +65,10 @@ def generate_template():
 
 def preprocess(df):
     df = df[TEMPLATE_COLUMNS]
-    df = df.rename(columns=BQ_COLUMN_MAP)
+    df = df.rename(columns=DB_COLUMN_MAP)
 
     for col in QTY_COLUMNS:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("int64")
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
 
     for col in df.columns:
         if col not in QTY_COLUMNS:
@@ -86,18 +78,18 @@ def preprocess(df):
     return df
 
 
-def append_to_bigquery(df):
-    table_id = f"{PROJECT_ID}.{DATASET}.{RAW_TABLE}"
-    job = client.load_table_from_dataframe(
-        df,
-        table_id,
-        job_config=bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
+def save_to_postgres(df):
+    df.to_sql(
+        "vendor_grn_raw",
+        engine,
+        if_exists="append",
+        index=False,
+        method="multi"
     )
-    job.result()
 
 # ================= STREAMLIT UI =================
 st.set_page_config(page_title="Vendor GRN Upload", layout="wide")
-st.title("📦 Vendor GRN Upload (No MERGE – Free Tier Safe)")
+st.title("📦 Vendor GRN Upload (PostgreSQL)")
 
 st.download_button(
     "📥 Download Excel Template",
@@ -119,24 +111,24 @@ if uploaded_file:
     st.subheader("📊 Processed Preview")
     st.dataframe(df_processed)
 
-    if st.button("✅ Save to BigQuery"):
-        append_to_bigquery(df_processed)
-        st.success("✅ Data appended successfully!")
+    if st.button("✅ Save to PostgreSQL"):
+        save_to_postgres(df_processed)
+        st.success("✅ Data saved to PostgreSQL successfully!")
 
 # ================= VISIBILITY =================
 st.subheader("📈 Aggregated View (Reference No + SKU)")
 
-summary_query = f"""
+query = """
 SELECT
-  reference_no,
-  sku,
-  SUM(invoice_qty) AS invoice_qty,
-  SUM(received_qty) AS received_qty,
-  SUM(actual_grn_qty) AS actual_grn_qty
-FROM `{PROJECT_ID}.{DATASET}.{RAW_TABLE}`
+    reference_no,
+    sku,
+    SUM(invoice_qty) AS invoice_qty,
+    SUM(received_qty) AS received_qty,
+    SUM(actual_grn_qty) AS actual_grn_qty
+FROM vendor_grn_raw
 GROUP BY reference_no, sku
-ORDER BY reference_no, sku
+ORDER BY reference_no, sku;
 """
 
-summary_df = client.query(summary_query).to_dataframe()
+summary_df = pd.read_sql(query, engine)
 st.dataframe(summary_df)
