@@ -59,7 +59,7 @@ def preprocess(df):
             "Vendor Name": "first",
             "PO Number": "first",
             "Name": "first",
-            "WH": "first",
+            "Warehouse": "first",
             "Status": "first",
             "GRN No": "first",
             "K12 to SSPL PO": "first",
