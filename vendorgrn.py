@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
-from google.cloud import bigquery
-from datetime import datetime
-from google.oauth2 import service_account
-import streamlit as st
 import io
+from datetime import datetime
+from google.cloud import bigquery
+from google.oauth2 import service_account
 
 # ================= CONFIG =================
 PROJECT_ID = "grnreport181922"
@@ -12,6 +11,7 @@ DATASET = "vendor_grn"
 MAIN_TABLE = "vendor_grn_data"
 TEMP_TABLE = "temp_vendor_grn"
 
+# ================= AUTH =================
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"]
 )
@@ -21,13 +21,7 @@ client = bigquery.Client(
     project=st.secrets["gcp_service_account"]["project_id"],
 )
 
-# ================= STREAMLIT UI =================
-st.set_page_config(page_title="Vendor GRN Upload", layout="wide")
-st.title("📦 Vendor GRN Data Upload & Visibility")
-
-uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
-
-# ================= COLUMN MAPPING =================
+# ================= TEMPLATE COLUMNS =================
 TEMPLATE_COLUMNS = [
     "Vendor Name",
     "PO Number",
@@ -39,7 +33,7 @@ TEMPLATE_COLUMNS = [
     "Short Excess Qty",
     "Damage Qty",
     "Actual GRN Qty",
-    "WH",
+    "Warehouse",
     "Status",
     "GRN No",
     "Ekart GRN Qty",
@@ -53,26 +47,37 @@ TEMPLATE_COLUMNS = [
     "GRN"
 ]
 
-REQUIRED_COLUMNS = [
-    "Vendor Name", "PO Number", "Reference No", "SKU", "Name",
-    "Invoice Qty", "Received Qty", "Short Excess Qty", "Damage Qty",
-    "Actual GRN Qty", "Warehouse", "Status", "GRN No",
-    "Ekart GRN Qty", "Makali GRN Qty",
-    "K12 to SSPL PO", "K12 to SSPL GRN",
-    "STO Qty", "PO", "Out Bound", "Bill", "GRN"
-]
+REQUIRED_COLUMNS = TEMPLATE_COLUMNS
 
 QTY_COLUMNS = [
-    "Invoice Qty", "Received Qty", "Short Excess Qty", "Damage Qty",
-    "Actual GRN Qty", "Ekart GRN Qty", "Makali GRN Qty", "STO Qty"
+    "Invoice Qty",
+    "Received Qty",
+    "Short Excess Qty",
+    "Damage Qty",
+    "Actual GRN Qty",
+    "Ekart GRN Qty",
+    "Makali GRN Qty",
+    "STO Qty"
 ]
 
 # ================= FUNCTIONS =================
+def generate_excel_template():
+    df = pd.DataFrame(columns=TEMPLATE_COLUMNS)
+    buffer = io.BytesIO()
+
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Vendor_GRN_Template")
+
+    buffer.seek(0)
+    return buffer
+
+
 def validate_columns(df):
     missing = set(REQUIRED_COLUMNS) - set(df.columns)
     if missing:
-        st.error(f"Missing columns: {missing}")
+        st.error(f"❌ Missing columns: {missing}")
         st.stop()
+
 
 def preprocess(df):
     df = df[REQUIRED_COLUMNS]
@@ -100,6 +105,7 @@ def preprocess(df):
     grouped["last_updated"] = datetime.utcnow()
     return grouped
 
+
 def load_temp_table(df):
     table_id = f"{PROJECT_ID}.{DATASET}.{TEMP_TABLE}"
     job = client.load_table_from_dataframe(
@@ -108,6 +114,7 @@ def load_temp_table(df):
         job_config=bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE")
     )
     job.result()
+
 
 def merge_to_main():
     merge_sql = f"""
@@ -132,16 +139,24 @@ def merge_to_main():
     """
     client.query(merge_sql).result()
 
-# ================= MAIN FLOW =================
+# ================= STREAMLIT UI =================
+st.set_page_config(page_title="Vendor GRN Upload", layout="wide")
+st.title("📦 Vendor GRN Data Upload & Visibility")
+
 st.subheader("⬇️ Download Excel Upload Template")
 
 template_file = generate_excel_template()
+
 st.download_button(
     label="📥 Download Vendor GRN Excel Template",
     data=template_file,
     file_name="Vendor_GRN_Upload_Template.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
+
+st.info("📌 Please use this template only. Do not rename columns.")
+
+uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
     df = pd.read_excel(uploaded_file)
@@ -158,7 +173,7 @@ if uploaded_file:
     if st.button("✅ Save to BigQuery"):
         load_temp_table(df_processed)
         merge_to_main()
-        st.success("Data successfully merged into BigQuery!")
+        st.success("✅ Data successfully merged into BigQuery!")
 
 # ================= VISIBILITY =================
 st.subheader("📈 BigQuery Live Data")
@@ -176,15 +191,8 @@ ORDER BY last_updated DESC
 """
 
 result_df = client.query(query).to_dataframe()
-st.dataframe(result_df)
-import io
 
-def generate_excel_template():
-    df = pd.DataFrame(columns=TEMPLATE_COLUMNS)
-    buffer = io.BytesIO()
-
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name="Vendor_GRN_Template")
-
-    buffer.seek(0)
-    return buffer
+if result_df.empty:
+    st.info("No data available yet.")
+else:
+    st.dataframe(result_df)
